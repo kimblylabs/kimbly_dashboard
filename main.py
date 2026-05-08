@@ -111,6 +111,13 @@ def fetch_snapshot(app_row):
         AND table_name = 'settings'
     """)
 
+    process_exists_query = text("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+        AND table_name = 'processes_status'
+    """)
+
     logs_query = text("""
         SELECT module, activity, priority, timestamp
         FROM trade_logs
@@ -119,26 +126,52 @@ def fetch_snapshot(app_row):
         LIMIT :log_limit
     """).bindparams(bindparam("modules", expanding=True))
 
+    latest_log_query = text("""
+        SELECT timestamp AS last_live_timestamp
+        FROM trade_logs
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)
+
     try:
         with engine.begin() as conn:
 
-            settings_exists = conn.execute(settings_exists_query).scalar()
+            settings_exists = conn.execute(
+                settings_exists_query
+            ).scalar()
+
+            process_exists = conn.execute(
+                process_exists_query
+            ).scalar()
+
+            # Priority:
+            # 1. settings table
+            # 2. processes_status table
+            # 3. latest trade_logs timestamp
 
             if settings_exists:
+
                 setting = conn.execute(text("""
-                        SELECT last_live_timestamp
-                        FROM settings
-                        WHERE id = 1
-                        LIMIT 1
-                    """)).mappings().first()
+                    SELECT last_live_timestamp
+                    FROM settings
+                    WHERE id = 1
+                    LIMIT 1
+                """)).mappings().first()
+
+            elif process_exists:
+
+                setting = conn.execute(text("""
+                    SELECT bot AS last_live_timestamp
+                    FROM processes_status
+                    WHERE id = 1
+                    LIMIT 1
+                """)).mappings().first()
 
             else:
-                setting = conn.execute(text("""
-                        SELECT bot AS last_live_timestamp
-                        FROM processes_status
-                        WHERE id = 1
-                        LIMIT 1
-                    """)).mappings().first()
+
+                setting = conn.execute(
+                    latest_log_query
+                ).mappings().first()
 
             logs = (
                 conn.execute(
@@ -159,7 +192,6 @@ def fetch_snapshot(app_row):
         "settings": dict(setting) if setting else {},
         "logs": [dict(l) for l in logs],
     }
-
 
 def semantic_priority(activity, priority):
     if priority is not None:
@@ -362,7 +394,7 @@ def home():
 def api_dashboard():
     try:
         rows = fetch_status_rows()
-
+        print(f"Fetched dashboard data for {rows} applications")
         return jsonify(dashboard_payload(rows))
 
     except Exception as exc:

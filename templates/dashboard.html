@@ -2,30 +2,54 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
     <title>Kimbly Applications Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+
     <style>
       :root {
-        --bg-0: #f4f6f8;
-        --bg-1: #e9eef3;
-        --ink: #1f2937;
+        --bg: #f5f7fa;
+
+        --panel: #ffffff;
+
+        --border: #e2e8f0;
+
+        --text: #1e293b;
+
         --muted: #64748b;
-        --line: #d9e2ec;
-        --panel: rgba(255, 255, 255, 0.88);
-        --table-head: #334155;
+
+        --header: #334155;
+
         --success-bg: #dcfce7;
         --success-text: #166534;
+
         --danger-bg: #fee2e2;
         --danger-text: #991b1b;
-        --warning-bg: #fef3c7;
-        --warning-text: #92400e;
+
+        --unknown-bg: #e2e8f0;
+        --unknown-text: #475569;
+
         --link: #2563eb;
       }
 
@@ -34,139 +58,70 @@
       }
 
       body {
+        margin: 0;
+
         min-height: 100vh;
-        background:
-          radial-gradient(
-            1000px 350px at -10% -10%,
-            rgba(226, 232, 240, 0.7),
-            transparent
-          ),
-          radial-gradient(
-            900px 420px at 110% -10%,
-            rgba(241, 245, 249, 0.9),
-            transparent
-          ),
-          linear-gradient(180deg, var(--bg-0), #f8fafc 40%, #edf2f7 100%);
 
-        color: var(--ink);
+        background: var(--bg);
+
+        color: var(--text);
+
         font-family: "Manrope", sans-serif;
+
         -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
       }
 
-      .font-heading {
-        font-family: "Space Grotesk", sans-serif;
-      }
-
-      .glass {
+      .panel {
         background: var(--panel);
-        border: 1px solid rgba(203, 213, 225, 0.8);
-        backdrop-filter: blur(10px);
-        box-shadow:
-          0 10px 30px rgba(15, 23, 42, 0.06),
-          0 2px 10px rgba(15, 23, 42, 0.04);
+
+        border: 1px solid var(--border);
+
+        border-radius: 18px;
+
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       }
+
       .stat-card {
-        background: rgba(255, 255, 255, 0.78);
+        background: #fff;
 
-        border: 1px solid rgba(203, 213, 225, 0.7);
+        border: 1px solid var(--border);
 
-        transition:
-          transform 0.18s ease,
-          box-shadow 0.18s ease;
-      }
-
-      .stat-card:hover {
-        transform: translateY(-1px);
-
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        border-radius: 16px;
       }
 
       .badge {
-        border-radius: 999px;
-
-        padding: 5px 12px;
-
-        font-size: 11px;
-
-        font-weight: 700;
-
-        letter-spacing: 0.03em;
-
         display: inline-flex;
 
         align-items: center;
 
         justify-content: center;
+
+        padding: 5px 12px;
+
+        border-radius: 999px;
+
+        font-size: 11px;
+
+        font-weight: 700;
+
+        letter-spacing: 0.02em;
       }
 
+      .badge-online,
       .badge-yes {
         background: var(--success-bg);
         color: var(--success-text);
       }
 
+      .badge-offline,
       .badge-no {
         background: var(--danger-bg);
         color: var(--danger-text);
       }
 
-      .badge-online {
-        background: var(--success-bg);
-        color: var(--success-text);
-      }
-
-      .badge-offline {
-        background: var(--danger-bg);
-        color: var(--danger-text);
-      }
-
       .badge-unknown {
-        background: #e2e8f0;
-        color: #475569;
-      }
-
-      .link-btn {
-        color: var(--link);
-
-        text-decoration: none;
-
-        font-weight: 700;
-
-        transition: opacity 0.18s ease;
-      }
-
-      .link-btn:hover {
-        opacity: 0.8;
-      }
-
-      table {
-        border-spacing: 0;
-      }
-
-      thead {
-        background: var(--table-head);
-      }
-
-      thead th {
-        color: rgba(255, 255, 255, 0.92);
-
-        font-size: 11px;
-
-        letter-spacing: 0.08em;
-
-        font-weight: 700;
-      }
-
-      tbody tr {
-        transition: background 0.18s ease;
-      }
-
-      tbody tr:hover {
-        background: rgba(241, 245, 249, 0.7);
-      }
-
-      tbody td {
-        color: #334155;
+        background: var(--unknown-bg);
+        color: var(--unknown-text);
       }
 
       .soft-text {
@@ -174,63 +129,114 @@
       }
 
       .socket-pill {
-        background: rgba(255, 255, 255, 0.85);
+        background: white;
 
-        border: 1px solid rgba(203, 213, 225, 0.8);
+        border: 1px solid var(--border);
 
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+        border-radius: 999px;
       }
 
-      @keyframes fadeUp {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
+      .link-btn {
+        color: var(--link);
 
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        text-decoration: none;
+
+        font-weight: 600;
       }
 
-      .animate-fade-up {
-        animation: fadeUp 360ms ease-out;
+      .link-btn:hover {
+        text-decoration: underline;
       }
+
+      .table-panel {
+        background: var(--panel);
+
+        border: 1px solid var(--border);
+
+        border-radius: 18px;
+
+        overflow: hidden;
+
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+
+      table {
+        width: 100%;
+
+        border-collapse: collapse;
+      }
+
+      thead {
+        background: var(--header);
+      }
+
+      thead th {
+        color: rgba(255, 255, 255, 0.95);
+
+        font-size: 11px;
+
+        letter-spacing: 0.08em;
+
+        text-transform: uppercase;
+
+        font-weight: 700;
+      }
+
+      tbody tr {
+        border-bottom: 1px solid var(--border);
+      }
+
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+
+      tbody tr:hover {
+        background: #f8fafc;
+      }
+
+      tbody td {
+        color: #334155;
+      }
+
+      .table-wrapper {
+        overflow-x: auto;
+
+        border-radius: 18px;
+      }
+
+      /* Lightweight scrollbar */
 
       ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: #edf2f7;
+        width: 8px;
+        height: 8px;
       }
 
       ::-webkit-scrollbar-thumb {
         background: #cbd5e1;
+
         border-radius: 999px;
       }
 
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+      ::-webkit-scrollbar-track {
+        background: transparent;
       }
     </style>
   </head>
 
   <body>
-    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section class="glass rounded-3xl p-5 sm:p-7 animate-fade-up">
+    <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <section class="panel p-5 sm:p-6">
         <div
-          class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <h1 class="mt-1 font-heading text-3xl font-bold">
+            <h1 class="text-3xl font-bold">
               Kimbly Labs Dashboard
             </h1>
           </div>
 
           <div
-            class="socket-pill flex items-center gap-2 rounded-full px-4 py-2"
+            class="socket-pill flex items-center gap-2 px-4 py-2"
           >
             <span
               id="socket-dot"
@@ -247,46 +253,53 @@
         </div>
 
         <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div class="stat-card rounded-2xl px-4 py-4">
+          <div class="stat-card px-4 py-4">
             <p class="text-[11px] uppercase tracking-wide soft-text">
               Total Apps
             </p>
 
-            <p id="stat-total" class="mt-2 font-heading text-2xl font-bold">
+            <p
+              id="stat-total"
+              class="mt-2 text-2xl font-bold"
+            >
               0
             </p>
           </div>
 
-          <div class="stat-card rounded-2xl px-4 py-4">
-            <p class="text-[11px] uppercase tracking-wide soft-text">Online</p>
+          <div class="stat-card px-4 py-4">
+            <p class="text-[11px] uppercase tracking-wide soft-text">
+              Online
+            </p>
 
             <p
               id="stat-online"
-              class="mt-2 font-heading text-2xl font-bold text-emerald-600"
+              class="mt-2 text-2xl font-bold text-emerald-600"
             >
               0
             </p>
           </div>
 
-          <div class="stat-card rounded-2xl px-4 py-4">
-            <p class="text-[11px] uppercase tracking-wide soft-text">Offline</p>
+          <div class="stat-card px-4 py-4">
+            <p class="text-[11px] uppercase tracking-wide soft-text">
+              Offline
+            </p>
 
             <p
               id="stat-offline"
-              class="mt-2 font-heading text-2xl font-bold text-rose-600"
+              class="mt-2 text-2xl font-bold text-rose-600"
             >
               0
             </p>
           </div>
 
-          <div class="stat-card rounded-2xl px-4 py-4">
+          <div class="stat-card px-4 py-4">
             <p class="text-[11px] uppercase tracking-wide soft-text">
               Last Update
             </p>
 
             <p
               id="stat-updated"
-              class="mt-2 text-sm font-semibold text-slate-700"
+              class="mt-2 text-sm font-semibold"
             >
               -
             </p>
@@ -294,9 +307,9 @@
         </div>
       </section>
 
-      <section class="glass mt-6 overflow-hidden rounded-3xl animate-fade-up">
-        <div class="overflow-x-auto">
-          <table class="min-w-full border-collapse">
+      <section class="table-panel mt-6">
+        <div class="table-wrapper">
+          <table>
             <thead>
               <tr class="text-left">
                 <th class="px-5 py-4">Application Name</th>
@@ -311,7 +324,7 @@
 
             <tbody
               id="table-body"
-              class="divide-y divide-slate-200 bg-white/75"
+              class="bg-white"
             ></tbody>
           </table>
         </div>
@@ -320,6 +333,9 @@
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    <script src="/static/js/dashboard.js" defer></script>
+    <script
+      src="/static/js/dashboard.js"
+      defer
+    ></script>
   </body>
 </html>
