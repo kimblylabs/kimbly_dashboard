@@ -2,10 +2,6 @@ const statusEl = document.getElementById("socket-status");
 const socketDot = document.getElementById("socket-dot");
 const tableBodyEl = document.getElementById("table-body");
 
-const statTotalEl = document.getElementById("stat-total");
-const statOnlineEl = document.getElementById("stat-online");
-const statOfflineEl = document.getElementById("stat-offline");
-const statUpdatedEl = document.getElementById("stat-updated");
 
 function setSocketState(text, connected) {
   statusEl.textContent = text;
@@ -35,20 +31,6 @@ function formatDateTime(value) {
   return d.toLocaleString();
 }
 
-function updateStats(applications, generatedAt) {
-  let online = 0;
-  for (const app of applications) {
-    if (app.online) online += 1;
-  }
-
-  const total = applications.length;
-  const offline = total - online;
-
-  statTotalEl.textContent = String(total);
-  statOnlineEl.textContent = String(online);
-  statOfflineEl.textContent = String(offline);
-  statUpdatedEl.textContent = formatDateTime(generatedAt);
-}
 
 function renderTable(applications) {
   tableBodyEl.innerHTML = "";
@@ -124,9 +106,6 @@ function renderTable(applications) {
 
 function applyPayload(payload) {
   const applications = payload?.applications || [];
-  const generatedAt = payload?.meta?.generated_at || null;
-
-  updateStats(applications, generatedAt);
   renderTable(applications);
 }
 
