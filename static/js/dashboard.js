@@ -28,27 +28,6 @@ function toOnlinePill(value) {
   return span;
 }
 
-function toLowPriorityPill(value) {
-  const normalized = String(value || "UNKNOWN").toUpperCase();
-  const span = document.createElement("span");
-
-  if (normalized === "ENABLED") {
-    span.className = "badge badge-yes";
-    span.textContent = "ENABLED";
-    return span;
-  }
-
-  if (normalized === "DISABLED") {
-    span.className = "badge badge-no";
-    span.textContent = "DISABLED";
-    return span;
-  }
-
-  span.className = "badge bg-slate-200 text-slate-700";
-  span.textContent = "UNKNOWN";
-  return span;
-}
-
 function formatDateTime(value) {
   if (!value) return "-";
   const d = new Date(value);
@@ -129,7 +108,7 @@ function renderTable(applications) {
 
     const lowLogsTd = document.createElement("td");
     lowLogsTd.className = "px-4 py-3 text-sm";
-    lowLogsTd.appendChild(toLowPriorityPill(app.low_priority_logs));
+    lowLogsTd.appendChild(toYesNoPill(Boolean(app.low_priority_logs)));
     tr.appendChild(lowLogsTd);
 
     const onlineTd = document.createElement("td");
@@ -168,7 +147,7 @@ async function initialLoad() {
     const payload = await res.json();
     applyPayload(payload);
   } catch (_err) {
-    console.log("Initial load failed, will rely on live updates. Error:", _err);
+    // Silent fail - will rely on live socket updates
   }
 }
 

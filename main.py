@@ -77,7 +77,7 @@ def fetch_apps():
         FROM applications
         WHERE active = 1
         ORDER BY id ASC
-        """)
+    """)
 
     engine = monitoring_engine()
 
@@ -104,13 +104,12 @@ def fetch_snapshot(app_row):
         timeout,
     )
 
-    # SELECT redis_or_mysql, low_priority_logs, last_live_timestamp
-    settings_query = text("""
-        SELECT  last_live_timestamp
-        FROM settings
-        WHERE id = 1
-        LIMIT 1
-        """)
+    settings_exists_query = text("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+        AND table_name = 'settings'
+    """)
 
     logs_query = text("""
         SELECT module, activity, priority, timestamp
@@ -118,11 +117,35 @@ def fetch_snapshot(app_row):
         WHERE module IN :modules
         ORDER BY timestamp DESC
         LIMIT :log_limit
-        """).bindparams(bindparam("modules", expanding=True))
+    """).bindparams(bindparam("modules", expanding=True))
 
     try:
         with engine.begin() as conn:
-            setting = conn.execute(settings_query).mappings().first()
+
+            settings_exists = conn.execute(
+                settings_exists_query
+            ).scalar()
+
+            if settings_exists:
+                setting = conn.execute(
+                    text("""
+                        SELECT last_live_timestamp
+                        FROM settings
+                        WHERE id = 1
+                        LIMIT 1
+                    """)
+                ).mappings().first()
+
+            else:
+                setting = conn.execute(
+                    text("""
+                        SELECT bot AS last_live_timestamp
+                        FROM processes_status
+                        WHERE id = 1
+                        LIMIT 1
+                    """)
+                ).mappings().first()
+
             logs = (
                 conn.execute(
                     logs_query,
@@ -134,6 +157,7 @@ def fetch_snapshot(app_row):
                 .mappings()
                 .all()
             )
+
     finally:
         engine.dispose()
 
@@ -200,18 +224,27 @@ def derive_status(app_row, snapshot):
             return None
 
     last_live_ts = parse_dt(settings.get("last_live_timestamp"))
+
     last_live_sec = (
-        abs(int((now - last_live_ts).total_seconds())) if last_live_ts else None
+        abs(int((now - last_live_ts).total_seconds()))
+        if last_live_ts
+        else None
     )
 
-    online = last_live_sec is not None and last_live_sec <= LIVE_THRESHOLD_SECONDS
+    online = (
+        last_live_sec is not None
+        and last_live_sec <= LIVE_THRESHOLD_SECONDS
+    )
+
     status = "ONLINE" if online else "OFFLINE"
 
     def latest_for(module_name):
         module_name = (module_name or "").lower()
+
         for row in logs:
             if str(row.get("module") or "").lower() == module_name:
                 return row
+
         return None
 
     daily = latest_for("daily_login")
@@ -223,22 +256,29 @@ def derive_status(app_row, snapshot):
     if not has_settings_row:
         insert_mode = "UNKNOWN"
         low_priority_logs = "UNKNOWN"
+
     else:
         if redis_or_mysql_raw is None:
             insert_mode = "UNKNOWN"
+
         elif str(redis_or_mysql_raw) == "0":
             insert_mode = "REDIS"
+
         elif str(redis_or_mysql_raw) == "1":
             insert_mode = "MYSQL"
+
         else:
             insert_mode = "UNKNOWN"
 
         if low_priority_raw is None:
             low_priority_logs = "UNKNOWN"
+
         elif str(low_priority_raw) == "0":
             low_priority_logs = "DISABLED"
+
         elif str(low_priority_raw) == "1":
             low_priority_logs = "ENABLED"
+
         else:
             low_priority_logs = "UNKNOWN"
 
@@ -250,16 +290,14 @@ def derive_status(app_row, snapshot):
             and semantic_priority(
                 daily.get("activity"),
                 daily.get("priority"),
-            )
-            >= 4
+            ) >= 4
         ),
         "db_reset": bool(
             reset
             and semantic_priority(
                 reset.get("activity"),
                 reset.get("priority"),
-            )
-            >= 4
+            ) >= 4
         ),
         "redirect_link": app_row.get("app_url"),
         "insert_mode": insert_mode,
@@ -275,8 +313,13 @@ def fetch_status_rows():
 
     for app_row in fetch_apps():
         try:
-            status = derive_status(app_row, fetch_snapshot(app_row))
+            status = derive_status(
+                app_row,
+                fetch_snapshot(app_row),
+            )
+
             status["error"] = None
+
         except Exception as exc:
             status = {
                 "app_id": app_row["id"],
@@ -295,6 +338,7 @@ def fetch_status_rows():
         rows.append(status)
 
     rows.sort(key=lambda x: (x.get("app_name") or "").lower())
+
     return rows
 
 
@@ -311,9 +355,12 @@ def dashboard_payload(rows):
 
 @app.after_request
 def add_no_cache_headers(response):
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, max-age=0"
+    )
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
+
     return response
 
 
@@ -326,8 +373,14 @@ def home():
 def api_dashboard():
     try:
         rows = fetch_status_rows()
-        return jsonify(dashboard_payload(rows))
+
+        return jsonify(
+            dashboard_payload(rows)
+        )
+
     except Exception as exc:
+        print(f"Error in /api/dashboard: {exc}")
+
         return (
             jsonify(
                 {
@@ -343,31 +396,57 @@ def api_dashboard():
 @socketio.on("connect")
 def on_connect():
     rows = fetch_status_rows()
-    socketio.emit("dashboard:update", dashboard_payload(rows))
+    socketio.emit(
+        "dashboard:update",
+        dashboard_payload(rows),
+    )
 
 
 @socketio.on("dashboard:subscribe")
 def on_subscribe(_data=None):
     rows = fetch_status_rows()
-    socketio.emit("dashboard:update", dashboard_payload(rows))
+
+    socketio.emit(
+        "dashboard:update",
+        dashboard_payload(rows),
+    )
 
 
 def poll_and_broadcast():
     rows = fetch_status_rows()
-    socketio.emit("dashboard:update", dashboard_payload(rows))
+
+    socketio.emit(
+        "dashboard:update",
+        dashboard_payload(rows),
+    )
 
 
 def start_scheduler():
-    scheduler_mod = importlib.import_module("apscheduler.schedulers.background")
-    BackgroundScheduler = getattr(scheduler_mod, "BackgroundScheduler")
+    scheduler_mod = importlib.import_module(
+        "apscheduler.schedulers.background"
+    )
 
-    interval = int(_env("MONITORING_POLL_INTERVAL_SECONDS", "15"))
+    BackgroundScheduler = getattr(
+        scheduler_mod,
+        "BackgroundScheduler",
+    )
+
+    interval = int(
+        _env(
+            "MONITORING_POLL_INTERVAL_SECONDS",
+            "15",
+        )
+    )
+
     if interval < 5:
         interval = 5
+
     if interval > 30:
         interval = 30
 
-    scheduler = BackgroundScheduler(timezone=APP_TIMEZONE_NAME)
+    scheduler = BackgroundScheduler(
+        timezone=APP_TIMEZONE_NAME
+    )
     scheduler.add_job(
         poll_and_broadcast,
         "interval",
