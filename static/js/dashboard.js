@@ -2,7 +2,6 @@ const statusEl = document.getElementById("socket-status");
 const socketDot = document.getElementById("socket-dot");
 const tableBodyEl = document.getElementById("table-body");
 
-
 function setSocketState(text, connected) {
   statusEl.textContent = text;
   socketDot.className = connected
@@ -31,14 +30,13 @@ function formatDateTime(value) {
   return d.toLocaleString();
 }
 
-
 function renderTable(applications) {
   tableBodyEl.innerHTML = "";
 
   if (!applications.length) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 7;
+    td.colSpan = 4;
     td.className = "px-4 py-6 text-center text-sm text-slate-500";
     td.textContent = "No applications found.";
     tr.appendChild(td);
@@ -50,7 +48,12 @@ function renderTable(applications) {
 
   applications.forEach((app) => {
     const tr = document.createElement("tr");
-    tr.className = "hover:bg-slate-50/90";
+    tr.className = "hover:bg-slate-50/90 clickable-row";
+
+    const detailPath = `/applications/${app.app_id}`;
+    tr.addEventListener("click", () => {
+      window.location.href = detailPath;
+    });
 
     const appNameTd = document.createElement("td");
     appNameTd.className = "px-4 py-3 text-sm font-semibold text-slate-800";
@@ -66,32 +69,6 @@ function renderTable(applications) {
     resetTd.className = "px-4 py-3 text-sm";
     resetTd.appendChild(toYesNoPill(Boolean(app.db_reset)));
     tr.appendChild(resetTd);
-
-    const linkTd = document.createElement("td");
-    linkTd.className = "px-4 py-3 text-sm";
-    if (app.redirect_link) {
-      const link = document.createElement("a");
-      link.className = "link-btn";
-      link.href = app.redirect_link;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = "Open";
-      linkTd.appendChild(link);
-    } else {
-      linkTd.textContent = "N/A";
-      linkTd.classList.add("text-slate-500");
-    }
-    tr.appendChild(linkTd);
-
-    const modeTd = document.createElement("td");
-    modeTd.className = "px-4 py-3 text-sm font-semibold text-slate-700";
-    modeTd.textContent = app.insert_mode || "UNKNOWN";
-    tr.appendChild(modeTd);
-
-    const lowLogsTd = document.createElement("td");
-    lowLogsTd.className = "px-4 py-3 text-sm";
-    lowLogsTd.appendChild(toYesNoPill(Boolean(app.low_priority_logs)));
-    tr.appendChild(lowLogsTd);
 
     const onlineTd = document.createElement("td");
     onlineTd.className = "px-4 py-3 text-sm";

@@ -2,16 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Kimbly Dashboard</title>
+    <title>{{ app_name }} | Kimbly Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap"
       rel="stylesheet"
@@ -20,28 +17,20 @@
     <style>
       :root {
         --bg: #f5f7fa;
-
         --panel: #ffffff;
-
         --border: #e2e8f0;
-
         --text: #1e293b;
-
         --muted: #64748b;
-
         --header: #334155;
-
         --success-bg: #dcfce7;
         --success-text: #166534;
-
         --yes-bg: #ecfeff;
         --yes-text: #0891b2;
-
         --danger-bg: #fee2e2;
         --danger-text: #991b1b;
-
         --unknown-bg: #e2e8f0;
         --unknown-text: #475569;
+        --link: #2563eb;
       }
 
       * {
@@ -50,62 +39,35 @@
 
       body {
         margin: 0;
-
         min-height: 100vh;
-
         background: var(--bg);
-
         color: var(--text);
-
         font-family: "Manrope", sans-serif;
-
         -webkit-font-smoothing: antialiased;
       }
 
       .panel {
         background: var(--panel);
-
         border: 1px solid var(--border);
-
         border-radius: 18px;
-
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      }
-
-      .stat-card {
-        background: #fff;
-
-        border: 1px solid var(--border);
-
-        border-radius: 16px;
       }
 
       .badge {
         display: inline-flex;
-
         align-items: center;
-
         justify-content: center;
-
         padding: 5px 12px;
-
         border-radius: 999px;
-
         font-size: 11px;
-
         font-weight: 700;
-
         letter-spacing: 0.02em;
       }
 
-      .badge-online {
+      .badge-online,
+      .badge-yes {
         background: var(--success-bg);
         color: var(--success-text);
-      }
-
-      .badge-yes {
-        background: var(--yes-bg);
-        color: var(--yes-text);
       }
 
       .badge-offline,
@@ -119,43 +81,29 @@
         color: var(--unknown-text);
       }
 
-      .soft-text {
+      .label {
         color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
       }
 
-      .socket-pill {
-        background: white;
-
-        border: 1px solid var(--border);
-
-        border-radius: 999px;
-      }
-
-      .link-btn {
-        text-decoration: none;
-
-        font-weight: 600;
-      }
-
-      .link-btn:hover {
-        text-decoration: underline;
+      .value {
+        margin-top: 6px;
+        font-weight: 700;
+        color: #0f172a;
       }
 
       .table-panel {
         background: var(--panel);
-
         border: 1px solid var(--border);
-
         border-radius: 18px;
-
         overflow: hidden;
-
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       }
 
       table {
         width: 100%;
-
         border-collapse: collapse;
       }
 
@@ -165,13 +113,9 @@
 
       thead th {
         color: rgba(255, 255, 255, 0.95);
-
         font-size: 11px;
-
         letter-spacing: 0.08em;
-
         text-transform: uppercase;
-
         font-weight: 700;
       }
 
@@ -183,14 +127,6 @@
         border-bottom: none;
       }
 
-      tbody tr:hover {
-        background: #f8fafc;
-      }
-
-      tbody tr.clickable-row {
-        cursor: pointer;
-      }
-
       tbody td {
         color: #334155;
       }
@@ -198,12 +134,26 @@
       .table-wrapper {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-
-        border-radius: 18px;
       }
 
       .table-panel table {
         min-width: 640px;
+      }
+
+      .summary-card {
+        padding: 12px;
+        border-radius: 14px;
+      }
+
+      .summary-card .label {
+        font-size: 10px;
+        letter-spacing: 0.05em;
+      }
+
+      .summary-card .value {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.2;
       }
 
       @media (max-width: 640px) {
@@ -217,6 +167,10 @@
         .panel,
         .table-panel {
           border-radius: 14px;
+        }
+
+        #page-title {
+          font-size: 1.5rem !important;
         }
 
         thead th {
@@ -235,21 +189,14 @@
         }
       }
 
-      /* Lightweight scrollbar */
-
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+      .link-btn {
+        color: var(--link);
+        text-decoration: none;
+        font-weight: 600;
       }
 
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-
-        border-radius: 999px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: transparent;
+      .link-btn:hover {
+        text-decoration: underline;
       }
     </style>
   </head>
@@ -261,45 +208,50 @@
           class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <h1 class="text-3xl font-bold">Kimbly Labs Dashboard</h1>
+            <a class="link-btn text-sm" href="/"> Back to Dashboard </a>
+            <h1 id="page-title" class="mt-2 text-3xl font-bold">
+              {{ app_name }}
+            </h1>
           </div>
 
-          <div class="socket-pill flex items-center gap-2 px-4 py-2">
-            <span
-              id="socket-dot"
-              class="h-2.5 w-2.5 rounded-full bg-amber-400"
-            ></span>
-
-            <span
-              id="socket-status"
-              class="text-xs font-semibold text-slate-700"
-            >
-              Connecting
-            </span>
-          </div>
+          <button
+            id="refresh-btn"
+            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            type="button"
+          >
+            Refresh
+          </button>
         </div>
       </section>
 
-      <section class="table-panel mt-6">
+      <section
+        id="summary-grid"
+        class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+      ></section>
+
+      <section class="table-panel mt-6 mb-8">
+        <div class="border-b border-slate-200 px-5 py-4">
+          <h2 class="text-lg font-semibold">Latest Logs</h2>
+        </div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr class="text-left">
-                <th class="px-5 py-4">Application Name</th>
-                <th class="px-5 py-4">Daily Login</th>
-                <th class="px-5 py-4">DB Reset</th>
-                <th class="px-5 py-4">Online</th>
+                <th class="px-5 py-4">Module</th>
+                <th class="px-5 py-4">Activity</th>
+                <th class="px-5 py-4">Priority</th>
+                <th class="px-5 py-4">Timestamp</th>
               </tr>
             </thead>
-
-            <tbody id="table-body" class="bg-white"></tbody>
+            <tbody id="logs-body" class="bg-white"></tbody>
           </table>
         </div>
       </section>
     </main>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
-    <script src="/static/js/dashboard.js" defer></script>
+    <script>
+      window.__APP_ID__ = {{ app_id|tojson }};
+    </script>
+    <script src="/static/js/application_detail.js" defer></script>
   </body>
 </html>

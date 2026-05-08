@@ -3,7 +3,7 @@ from datetime import datetime, time, timedelta, timezone
 import importlib
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template
+from flask import Flask, abort, jsonify, render_template
 from sqlalchemy import bindparam, create_engine, text
 from telegram_notifier import check_and_notify
 
@@ -91,6 +91,25 @@ def fetch_apps():
     return [dict(r) for r in rows]
 
 
+def fetch_app_by_id(app_id):
+    query = text("""
+        SELECT id, app_name, db_host, db_name, db_user, db_password, app_url
+        FROM applications
+        WHERE active = 1 AND id = :app_id
+        LIMIT 1
+        """)
+
+    engine = monitoring_engine()
+
+    try:
+        with engine.begin() as conn:
+            row = conn.execute(query, {"app_id": app_id}).mappings().first()
+    finally:
+        engine.dispose()
+
+    return dict(row) if row else None
+
+
 def fetch_snapshot(app_row):
     db_port = int(_env("APP_DB_PORT", "3306"))
     timeout = int(_env("APP_DB_CONNECT_TIMEOUT_SECONDS", "3"))
@@ -137,9 +156,7 @@ def fetch_snapshot(app_row):
     try:
         with engine.begin() as conn:
 
-            settings_exists = conn.execute(
-                settings_exists_query
-            ).scalar()
+            settings_exists = conn.execute(settings_exists_query).scalar()
 
             process_exists = conn.execute(process_exists_query).scalar()
 
@@ -168,9 +185,7 @@ def fetch_snapshot(app_row):
 
             else:
 
-                setting = conn.execute(
-                    latest_log_query
-                ).mappings().first()
+                setting = conn.execute(latest_log_query).mappings().first()
 
             logs = (
                 conn.execute(
@@ -191,6 +206,7 @@ def fetch_snapshot(app_row):
         "settings": dict(setting) if setting else {},
         "logs": [dict(l) for l in logs],
     }
+
 
 def semantic_priority(activity, priority):
     if priority is not None:
@@ -375,6 +391,39 @@ def dashboard_payload(rows):
     }
 
 
+def _jsonify_safe(value):
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, dict):
+        return {k: _jsonify_safe(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [_jsonify_safe(v) for v in value]
+
+    return value
+
+
+def app_detail_payload(app_row):
+    snapshot = fetch_snapshot(app_row)
+    status = derive_status(app_row, snapshot)
+
+    return {
+        "application": {
+            "app_id": app_row["id"],
+            "app_name": app_row.get("app_name"),
+            "redirect_link": app_row.get("app_url"),
+            "status": status,
+            "settings": _jsonify_safe(snapshot.get("settings") or {}),
+            "logs": _jsonify_safe(snapshot.get("logs") or []),
+        },
+        "meta": {
+            "generated_at": now_tz().isoformat(),
+            "market_status": indian_market_status(),
+        },
+    }
+
+
 @app.after_request
 def add_no_cache_headers(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -387,6 +436,19 @@ def add_no_cache_headers(response):
 @app.get("/")
 def home():
     return render_template("dashboard.html")
+
+
+@app.get("/applications/<int:app_id>")
+def application_detail_page(app_id):
+    app_row = fetch_app_by_id(app_id)
+    if not app_row:
+        abort(404)
+
+    return render_template(
+        "application_detail.html",
+        app_id=app_id,
+        app_name=app_row.get("app_name") or "Application",
+    )
 
 
 @app.get("/api/dashboard")
@@ -409,6 +471,19 @@ def api_dashboard():
             ),
             500,
         )
+
+
+@app.get("/api/applications/<int:app_id>")
+def api_application_detail(app_id):
+    app_row = fetch_app_by_id(app_id)
+
+    if not app_row:
+        return jsonify({"error": "Application not found"}), 404
+
+    try:
+        return jsonify(app_detail_payload(app_row))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @socketio.on("connect")
