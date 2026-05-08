@@ -122,29 +122,23 @@ def fetch_snapshot(app_row):
     try:
         with engine.begin() as conn:
 
-            settings_exists = conn.execute(
-                settings_exists_query
-            ).scalar()
+            settings_exists = conn.execute(settings_exists_query).scalar()
 
             if settings_exists:
-                setting = conn.execute(
-                    text("""
+                setting = conn.execute(text("""
                         SELECT last_live_timestamp
                         FROM settings
                         WHERE id = 1
                         LIMIT 1
-                    """)
-                ).mappings().first()
+                    """)).mappings().first()
 
             else:
-                setting = conn.execute(
-                    text("""
+                setting = conn.execute(text("""
                         SELECT bot AS last_live_timestamp
                         FROM processes_status
                         WHERE id = 1
                         LIMIT 1
-                    """)
-                ).mappings().first()
+                    """)).mappings().first()
 
             logs = (
                 conn.execute(
@@ -226,15 +220,10 @@ def derive_status(app_row, snapshot):
     last_live_ts = parse_dt(settings.get("last_live_timestamp"))
 
     last_live_sec = (
-        abs(int((now - last_live_ts).total_seconds()))
-        if last_live_ts
-        else None
+        abs(int((now - last_live_ts).total_seconds())) if last_live_ts else None
     )
 
-    online = (
-        last_live_sec is not None
-        and last_live_sec <= LIVE_THRESHOLD_SECONDS
-    )
+    online = last_live_sec is not None and last_live_sec <= LIVE_THRESHOLD_SECONDS
 
     status = "ONLINE" if online else "OFFLINE"
 
@@ -290,14 +279,16 @@ def derive_status(app_row, snapshot):
             and semantic_priority(
                 daily.get("activity"),
                 daily.get("priority"),
-            ) >= 4
+            )
+            >= 4
         ),
         "db_reset": bool(
             reset
             and semantic_priority(
                 reset.get("activity"),
                 reset.get("priority"),
-            ) >= 4
+            )
+            >= 4
         ),
         "redirect_link": app_row.get("app_url"),
         "insert_mode": insert_mode,
@@ -355,9 +346,7 @@ def dashboard_payload(rows):
 
 @app.after_request
 def add_no_cache_headers(response):
-    response.headers["Cache-Control"] = (
-        "no-store, no-cache, must-revalidate, max-age=0"
-    )
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
 
@@ -374,9 +363,7 @@ def api_dashboard():
     try:
         rows = fetch_status_rows()
 
-        return jsonify(
-            dashboard_payload(rows)
-        )
+        return jsonify(dashboard_payload(rows))
 
     except Exception as exc:
         print(f"Error in /api/dashboard: {exc}")
@@ -422,9 +409,7 @@ def poll_and_broadcast():
 
 
 def start_scheduler():
-    scheduler_mod = importlib.import_module(
-        "apscheduler.schedulers.background"
-    )
+    scheduler_mod = importlib.import_module("apscheduler.schedulers.background")
 
     BackgroundScheduler = getattr(
         scheduler_mod,
@@ -444,9 +429,7 @@ def start_scheduler():
     if interval > 30:
         interval = 30
 
-    scheduler = BackgroundScheduler(
-        timezone=APP_TIMEZONE_NAME
-    )
+    scheduler = BackgroundScheduler(timezone=APP_TIMEZONE_NAME)
     scheduler.add_job(
         poll_and_broadcast,
         "interval",
