@@ -2,6 +2,7 @@ const summaryGridEl = document.getElementById("summary-grid");
 const logsBodyEl = document.getElementById("logs-body");
 const pageTitleEl = document.getElementById("page-title");
 const refreshBtnEl = document.getElementById("refresh-btn");
+let isDetailLoading = false;
 
 function toPill(text, kind) {
   const span = document.createElement("span");
@@ -143,6 +144,11 @@ function applyDetailPayload(payload) {
 }
 
 async function loadDetail() {
+  if (isDetailLoading) {
+    return;
+  }
+
+  isDetailLoading = true;
   const appId = window.__APP_ID__;
   try {
     const response = await fetch(`/api/applications/${appId}`, {
@@ -161,11 +167,26 @@ async function loadDetail() {
     applyDetailPayload(payload);
   } catch (_err) {
     applyDetailPayload(null);
+  } finally {
+    isDetailLoading = false;
   }
 }
 
 refreshBtnEl.addEventListener("click", () => {
   loadDetail();
+});
+
+const socket = io({
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+});
+
+socket.on("dashboard:update", () => {
+  window.requestAnimationFrame(() => {
+    loadDetail();
+  });
 });
 
 loadDetail();
