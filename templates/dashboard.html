@@ -8,7 +8,7 @@
       content="width=device-width, initial-scale=1.0"
     />
 
-    <title>Kimbly Applications Dashboard</title>
+    <title>Kimbly Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link
@@ -43,6 +43,9 @@
 
         --success-bg: #dcfce7;
         --success-text: #166534;
+
+        --yes-bg: #ecfeff;
+        --yes-text: #0891b2;
 
         --danger-bg: #fee2e2;
         --danger-text: #991b1b;
@@ -107,10 +110,14 @@
         letter-spacing: 0.02em;
       }
 
-      .badge-online,
-      .badge-yes {
+      .badge-online {
         background: var(--success-bg);
         color: var(--success-text);
+      }
+
+      .badge-yes{
+        background: var(--yes-bg);
+        color: var(--yes-text);
       }
 
       .badge-offline,

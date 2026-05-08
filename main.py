@@ -5,6 +5,7 @@ import importlib
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
 from sqlalchemy import bindparam, create_engine, text
+from telegram_notifier import check_and_notify
 
 load_dotenv()
 
@@ -140,9 +141,7 @@ def fetch_snapshot(app_row):
                 settings_exists_query
             ).scalar()
 
-            process_exists = conn.execute(
-                process_exists_query
-            ).scalar()
+            process_exists = conn.execute(process_exists_query).scalar()
 
             # Priority:
             # 1. settings table
@@ -433,6 +432,7 @@ def on_subscribe(_data=None):
 
 def poll_and_broadcast():
     rows = fetch_status_rows()
+    check_and_notify(rows)
 
     socketio.emit(
         "dashboard:update",
