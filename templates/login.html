@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | Kimbly Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Manrope", sans-serif;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(59, 130, 246, 0.12),
+            transparent 35%
+          ),
+          linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center px-4 py-8">
+    <main class="w-full max-w-md">
+      <section class="panel rounded-3xl p-8">
+        <div class="mb-4">
+          <p
+            class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 text-center"
+          >
+            Kimbly Dashboard
+          </p>
+        </div>
+
+        {% if error %}
+        <div
+          class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" class="space-y-4">
+          <input type="hidden" name="next" value="{{ next_url }}" />
+
+          <div>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              required
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none ring-0 transition focus:border-blue-500"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          <div>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none ring-0 transition focus:border-blue-500"
+              placeholder="Enter your password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Login
+          </button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

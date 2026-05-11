@@ -1,9 +1,21 @@
 import os
 from datetime import datetime, time, timedelta, timezone
 import importlib
+from urllib.parse import urlparse
+
+import bcrypt
 
 from dotenv import load_dotenv
-from flask import Flask, abort, jsonify, render_template
+from flask import (
+    Flask,
+    abort,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from sqlalchemy import bindparam, create_engine, text
 from telegram_notifier import check_and_notify
 
@@ -43,6 +55,45 @@ def _env(name: str, default: str) -> str:
     return value if value not in (None, "") else default
 
 
+app.config["SECRET_KEY"] = _env("FLASK_SECRET_KEY", "kimbly-dashboard-dev-secret")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+def _safe_next_url(target):
+    if not target:
+        return url_for("home")
+
+    parsed = urlparse(target)
+    if parsed.scheme or parsed.netloc:
+        return url_for("home")
+
+    if not target.startswith("/"):
+        return url_for("home")
+
+    return target
+
+
+def _bcrypt_hash_value(value):
+    if value is None:
+        return None
+
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value)
+
+    return str(value).encode("utf-8")
+
+
+def _verify_password(stored_hash, password):
+    hashed = _bcrypt_hash_value(stored_hash)
+    if not hashed or not hashed.startswith(b"$2"):
+        return False
+
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), hashed)
+    except Exception:
+        return False
+
+
 def monitoring_engine():
     host = _env("MONITORING_DB_HOST", "localhost")
     port = int(_env("MONITORING_DB_PORT", "3306"))
@@ -56,6 +107,67 @@ def monitoring_engine():
         pool_recycle=10,
         pool_size=5,
         max_overflow=10,
+    )
+
+
+def fetch_user_auth_record(username):
+    engine = monitoring_engine()
+
+    try:
+        with engine.begin() as conn:
+            table_exists = conn.execute(
+                text("""
+                    SELECT COUNT(*)
+                    FROM information_schema.tables
+                    WHERE table_schema = DATABASE()
+                    AND table_name = 'user'
+                    """),
+            ).scalar()
+
+            if not table_exists:
+                return None
+
+            row = (
+                conn.execute(
+                    text("""
+                    SELECT id, `username` AS username, `password` AS password
+                    FROM `user`
+                    WHERE `username` = :username
+                    LIMIT 1
+                    """),
+                    {"username": username},
+                )
+                .mappings()
+                .first()
+            )
+
+            if row:
+                return dict(row)
+    finally:
+        engine.dispose()
+
+    return None
+
+
+def is_logged_in():
+    return bool(session.get("user_id"))
+
+
+@app.before_request
+def require_login():
+    allowed_endpoints = {"login", "logout", "static"}
+
+    if request.endpoint in allowed_endpoints or request.endpoint is None:
+        return None
+
+    if is_logged_in():
+        return None
+
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    return redirect(
+        url_for("login", next=request.full_path if request.method == "GET" else None)
     )
 
 
@@ -433,6 +545,39 @@ def add_no_cache_headers(response):
     return response
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if is_logged_in():
+        return redirect(url_for("home"))
+
+    error = None
+    next_target = request.form.get("next") or request.args.get("next") or ""
+
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip()
+        password = request.form.get("password") or ""
+
+        if username and password:
+            user = fetch_user_auth_record(username)
+            stored_password = user.get("password") if user else None
+
+            if user and _verify_password(stored_password, password):
+                session.clear()
+                session["user_id"] = user.get("id") or username
+                session["username"] = user.get("username") or username
+                return redirect(_safe_next_url(next_target))
+
+        error = "Invalid username or password"
+
+    return render_template("login.html", error=error, next_url=next_target)
+
+
+@app.get("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 @app.get("/")
 def home():
     return render_template("dashboard.html")
@@ -488,6 +633,9 @@ def api_application_detail(app_id):
 
 @socketio.on("connect")
 def on_connect():
+    if not is_logged_in():
+        return False
+
     rows = fetch_status_rows()
     socketio.emit(
         "dashboard:update",
