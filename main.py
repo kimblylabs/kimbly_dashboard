@@ -36,7 +36,7 @@ IMPORTANT_MODULES = [
 ]
 
 APP_TIMEZONE_NAME = "Asia/Kolkata"
-LIVE_THRESHOLD_SECONDS = 900
+LIVE_THRESHOLD_SECONDS = 300  # 5 minutes
 
 try:
     zoneinfo_mod = importlib.import_module("zoneinfo")
