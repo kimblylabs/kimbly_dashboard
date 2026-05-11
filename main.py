@@ -703,7 +703,7 @@ if __name__ == "__main__":
     scheduler = start_scheduler()
 
     try:
-        host = _env("FLASK_RUN_HOST", "127.0.0.1")
+        host = _env("FLASK_RUN_HOST", "0.0.0.0")
         port = int(_env("FLASK_RUN_PORT", "5000"))
         debug = _env("FLASK_DEBUG", "0") == "1"
 
