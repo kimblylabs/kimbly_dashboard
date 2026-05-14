@@ -4,6 +4,8 @@ import importlib
 from urllib.parse import urlparse
 
 import bcrypt
+import psutil
+import requests
 
 from dotenv import load_dotenv
 from flask import (
@@ -37,6 +39,8 @@ IMPORTANT_MODULES = [
 
 APP_TIMEZONE_NAME = "Asia/Kolkata"
 LIVE_THRESHOLD_SECONDS = 300  # 5 minutes
+MAC_DISK_PATH = "/"
+LOW_DISK_THRESHOLD_GB = 5
 
 try:
     zoneinfo_mod = importlib.import_module("zoneinfo")
@@ -50,14 +54,101 @@ def now_tz():
     return datetime.now(APP_TZ)
 
 
+def bytes_to_gb(value):
+    return round(value / (1024**3), 2)
+
+
 def _env(name: str, default: str) -> str:
     value = os.getenv(name)
     return value if value not in (None, "") else default
 
 
+def _win_api_base_url():
+    return _env("WIN_API_BASE_URL", "").strip().rstrip("/")
+
+
+def _win_api_timeout_seconds():
+    try:
+        timeout = int(_env("WIN_API_TIMEOUT_SECONDS", "3"))
+    except Exception:
+        timeout = 3
+
+    return timeout if timeout > 0 else 3
+
+
+def _fetch_win_json(path):
+    base = _win_api_base_url()
+    if not base:
+        return None
+
+    if not str(path).startswith("/"):
+        path = f"/{path}"
+
+    url = f"{base}{path}"
+
+    try:
+        response = requests.get(url, timeout=_win_api_timeout_seconds())
+    except Exception:
+        return None
+
+    if not response.ok:
+        return None
+
+    try:
+        return response.json()
+    except Exception:
+        return None
+
+
+def mac_storage_payload():
+    disk = psutil.disk_usage(MAC_DISK_PATH)
+    total_gb = bytes_to_gb(disk.total)
+    used_gb = bytes_to_gb(disk.used)
+    free_gb = bytes_to_gb(disk.free)
+    used_percent = round(disk.percent, 2)
+    low_disk = free_gb < LOW_DISK_THRESHOLD_GB
+
+    return {
+        "platform": "MAC",
+        "drive": MAC_DISK_PATH,
+        "timestamp": now_tz().isoformat(),
+        "storage": {
+            "total_gb": total_gb,
+            "used_gb": used_gb,
+            "free_gb": free_gb,
+            "used_percent": used_percent,
+            "low_disk": low_disk,
+        },
+    }
+
+
+def combined_storage_payload():
+    mac_data = None
+    win_data = None
+
+    try:
+        mac_data = mac_storage_payload()
+    except Exception as exc:
+        mac_data = {"platform": "MAC", "success": False, "error": str(exc)}
+
+    win_data = _fetch_win_json("/win/storage")
+    if not isinstance(win_data, dict):
+        win_data = {
+            "platform": "WIN",
+            "success": False,
+            "error": "Windows storage unavailable",
+        }
+
+    return {
+        "mac": mac_data,
+        "win": win_data,
+    }
+
+
 app.config["SECRET_KEY"] = _env("FLASK_SECRET_KEY", "kimbly-dashboard-dev-secret")
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 
 def _safe_next_url(target):
     if not target:
@@ -485,9 +576,34 @@ def fetch_status_rows():
                 "error": str(exc),
             }
 
+        status["source"] = "MAC"
         rows.append(status)
 
-    rows.sort(key=lambda x: (x.get("app_name") or "").lower())
+    win_payload = _fetch_win_json("/win/dashboard")
+    win_rows = win_payload.get("applications") if isinstance(win_payload, dict) else []
+
+    if isinstance(win_rows, list):
+        for row in win_rows:
+            if not isinstance(row, dict):
+                continue
+
+            merged = {
+                "app_id": row.get("app_id"),
+                "app_name": row.get("app_name"),
+                "daily_login": bool(row.get("daily_login")),
+                "db_reset": bool(row.get("db_reset")),
+                "redirect_link": row.get("redirect_link"),
+                "insert_mode": row.get("insert_mode", "UNKNOWN"),
+                "low_priority_logs": row.get("low_priority_logs", "UNKNOWN"),
+                "status": row.get("status", "OFFLINE"),
+                "online": bool(row.get("online")),
+                "last_activity_seconds": row.get("last_activity_seconds"),
+                "error": row.get("error"),
+                "source": "WIN",
+            }
+            rows.append(merged)
+
+    rows.sort(key=lambda x: ((x.get("app_name") or "").lower(), x.get("source") or ""))
 
     return rows
 
@@ -495,6 +611,7 @@ def fetch_status_rows():
 def dashboard_payload(rows):
     return {
         "applications": rows,
+        "storage": combined_storage_payload(),
         "meta": {
             "total": len(rows),
             "generated_at": now_tz().isoformat(),
@@ -593,6 +710,17 @@ def application_detail_page(app_id):
         "application_detail.html",
         app_id=app_id,
         app_name=app_row.get("app_name") or "Application",
+        app_source="MAC",
+    )
+
+
+@app.get("/applications/win/<int:app_id>")
+def application_detail_page_win(app_id):
+    return render_template(
+        "application_detail.html",
+        app_id=app_id,
+        app_name=f"Windows App #{app_id}",
+        app_source="WIN",
     )
 
 
@@ -629,6 +757,41 @@ def api_application_detail(app_id):
         return jsonify(app_detail_payload(app_row))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
+
+
+@app.get("/api/win/<path:subpath>")
+def api_win_proxy(subpath):
+    base = _win_api_base_url()
+    if not base:
+        return jsonify({"error": "WIN_API_BASE_URL is not configured"}), 503
+
+    path = f"/win/{subpath.lstrip('/')}"
+    url = f"{base}{path}"
+
+    try:
+        response = requests.get(url, timeout=_win_api_timeout_seconds())
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+
+    try:
+        payload = response.json()
+    except Exception:
+        payload = {"error": "Invalid JSON response from windows API"}
+
+    return jsonify(payload), response.status_code
+
+
+@app.get("/api/storage")
+def api_storage_combined():
+    return jsonify(combined_storage_payload())
+
+
+@app.get("/storage")
+def storage():
+    try:
+        return jsonify(mac_storage_payload())
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 500
 
 
 @socketio.on("connect")

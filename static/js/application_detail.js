@@ -150,8 +150,13 @@ async function loadDetail() {
 
   isDetailLoading = true;
   const appId = window.__APP_ID__;
+  const appSource = String(window.__APP_SOURCE__ || "MAC").toUpperCase();
+  const detailApiPath =
+    appSource === "WIN"
+      ? `/api/win/applications/${appId}`
+      : `/api/applications/${appId}`;
   try {
-    const response = await fetch(`/api/applications/${appId}`, {
+    const response = await fetch(detailApiPath, {
       method: "GET",
       cache: "no-store",
       headers: {

@@ -1,6 +1,11 @@
 const statusEl = document.getElementById("socket-status");
 const socketDot = document.getElementById("socket-dot");
 const tableBodyEl = document.getElementById("table-body");
+const totalAppsEl = document.getElementById("total-apps");
+const macOnlineEl = document.getElementById("mac-online");
+const winOnlineEl = document.getElementById("win-online");
+const macStorageEl = document.getElementById("mac-storage");
+const winStorageEl = document.getElementById("win-storage");
 
 function setSocketState(text, connected) {
   statusEl.textContent = text;
@@ -30,13 +35,48 @@ function formatDateTime(value) {
   return d.toLocaleString();
 }
 
+function storageText(storagePayload) {
+  if (!storagePayload || storagePayload.success === false) {
+    return "Unavailable";
+  }
+
+  const freeGb = storagePayload?.storage?.free_gb;
+  const usedPercent = storagePayload?.storage?.used_percent;
+
+  if (freeGb == null || usedPercent == null) {
+    return "Unavailable";
+  }
+
+  return `${freeGb} GB free (${usedPercent}%)`;
+}
+
+function renderOverview(payload) {
+  const applications = payload?.applications || [];
+  const macApps = applications.filter(
+    (app) => String(app?.source || "MAC").toUpperCase() === "MAC",
+  );
+  const winApps = applications.filter(
+    (app) => String(app?.source || "MAC").toUpperCase() === "WIN",
+  );
+
+  const macOnline = macApps.filter((app) => Boolean(app.online)).length;
+  const winOnline = winApps.filter((app) => Boolean(app.online)).length;
+
+  totalAppsEl.textContent = String(applications.length);
+  macOnlineEl.textContent = `${macOnline}/${macApps.length}`;
+  winOnlineEl.textContent = `${winOnline}/${winApps.length}`;
+
+  macStorageEl.textContent = storageText(payload?.storage?.mac);
+  winStorageEl.textContent = storageText(payload?.storage?.win);
+}
+
 function renderTable(applications) {
   tableBodyEl.innerHTML = "";
 
   if (!applications.length) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 4;
+    td.colSpan = 5;
     td.className = "px-4 py-6 text-center text-sm text-slate-500";
     td.textContent = "No applications found.";
     tr.appendChild(td);
@@ -50,10 +90,19 @@ function renderTable(applications) {
     const tr = document.createElement("tr");
     tr.className = "hover:bg-slate-50/90 clickable-row";
 
-    const detailPath = `/applications/${app.app_id}`;
+    const source = String(app.source || "MAC").toUpperCase();
+    const detailPath =
+      source === "WIN"
+        ? `/applications/win/${app.app_id}`
+        : `/applications/${app.app_id}`;
     tr.addEventListener("click", () => {
       window.location.href = detailPath;
     });
+
+    const sourceTd = document.createElement("td");
+    sourceTd.className = "px-4 py-3 text-sm font-semibold text-slate-700";
+    sourceTd.textContent = source;
+    tr.appendChild(sourceTd);
 
     const appNameTd = document.createElement("td");
     appNameTd.className = "px-4 py-3 text-sm font-semibold text-slate-800";
@@ -83,6 +132,7 @@ function renderTable(applications) {
 
 function applyPayload(payload) {
   const applications = payload?.applications || [];
+  renderOverview(payload);
   renderTable(applications);
 }
 

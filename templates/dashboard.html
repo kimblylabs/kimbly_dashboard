@@ -281,11 +281,39 @@
         </div>
       </section>
 
+      <section class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <article class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Total Apps</p>
+          <p id="total-apps" class="mt-1 text-xl font-bold text-slate-900">0</p>
+        </article>
+
+        <article class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Mac Online</p>
+          <p id="mac-online" class="mt-1 text-xl font-bold text-slate-900">0/0</p>
+        </article>
+
+        <article class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Win Online</p>
+          <p id="win-online" class="mt-1 text-xl font-bold text-slate-900">0/0</p>
+        </article>
+
+        <article class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Mac Storage</p>
+          <p id="mac-storage" class="mt-1 text-sm font-semibold text-slate-800">-</p>
+        </article>
+
+        <article class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Win Storage</p>
+          <p id="win-storage" class="mt-1 text-sm font-semibold text-slate-800">-</p>
+        </article>
+      </section>
+
       <section class="table-panel mt-6">
         <div class="table-wrapper">
           <table>
             <thead>
               <tr class="text-left">
+                <th class="px-5 py-4">Source</th>
                 <th class="px-5 py-4">Application Name</th>
                 <th class="px-5 py-4">Daily Login</th>
                 <th class="px-5 py-4">DB Reset</th>
