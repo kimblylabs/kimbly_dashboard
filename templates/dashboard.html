@@ -80,6 +80,11 @@
         border-radius: 16px;
       }
 
+      .stat-card.storage-alert {
+        background: #fad4d4;
+        border-color: #ff0000;
+      }
+
       .badge {
         display: inline-flex;
 
@@ -297,12 +302,12 @@
           <p id="win-online" class="mt-1 text-xl font-bold text-slate-900">0/0</p>
         </article>
 
-        <article class="stat-card p-4">
+        <article id="mac-storage-card" class="stat-card p-4">
           <p class="text-xs font-semibold uppercase tracking-wide soft-text">Mac Storage</p>
           <p id="mac-storage" class="mt-1 text-sm font-semibold text-slate-800">-</p>
         </article>
 
-        <article class="stat-card p-4">
+        <article id="win-storage-card" class="stat-card p-4">
           <p class="text-xs font-semibold uppercase tracking-wide soft-text">Win Storage</p>
           <p id="win-storage" class="mt-1 text-sm font-semibold text-slate-800">-</p>
         </article>

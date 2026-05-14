@@ -6,6 +6,8 @@ const macOnlineEl = document.getElementById("mac-online");
 const winOnlineEl = document.getElementById("win-online");
 const macStorageEl = document.getElementById("mac-storage");
 const winStorageEl = document.getElementById("win-storage");
+const macStorageCardEl = document.getElementById("mac-storage-card");
+const winStorageCardEl = document.getElementById("win-storage-card");
 
 function setSocketState(text, connected) {
   statusEl.textContent = text;
@@ -68,6 +70,12 @@ function renderOverview(payload) {
 
   macStorageEl.textContent = storageText(payload?.storage?.mac);
   winStorageEl.textContent = storageText(payload?.storage?.win);
+
+  const macLowDisk = Boolean(payload?.storage?.mac?.storage?.low_disk);
+  const winLowDisk = Boolean(payload?.storage?.win?.storage?.low_disk);
+
+  macStorageCardEl.classList.toggle("storage-alert", macLowDisk);
+  winStorageCardEl.classList.toggle("storage-alert", winLowDisk);
 }
 
 function renderTable(applications) {
