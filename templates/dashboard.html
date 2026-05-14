@@ -80,9 +80,10 @@
         border-radius: 16px;
       }
 
-      .stat-card.storage-alert {
-        background: #fad4d4;
-        border-color: #ff0000;
+      .stat-card.storage-alert,
+      .stat-card.status-alert {
+        background: #fff4f4;
+        border-color: #fecaca;
       }
 
       .badge {
@@ -289,17 +290,17 @@
       <section class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <article class="stat-card p-4">
           <p class="text-xs font-semibold uppercase tracking-wide soft-text">Total Apps</p>
-          <p id="total-apps" class="mt-1 text-xl font-bold text-slate-900">0</p>
+          <p id="total-apps" class="mt-1 text-sm font-bold text-slate-900">0</p>
         </article>
 
-        <article class="stat-card p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Mac Online</p>
-          <p id="mac-online" class="mt-1 text-xl font-bold text-slate-900">0/0</p>
+        <article id="mac-batchworker-card" class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Mac BatchWorker</p>
+          <p id="mac-batchworker" class="mt-1 text-sm font-bold text-slate-900">-</p>
         </article>
 
-        <article class="stat-card p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Win Online</p>
-          <p id="win-online" class="mt-1 text-xl font-bold text-slate-900">0/0</p>
+        <article id="win-batchworker-card" class="stat-card p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide soft-text">Win BatchWorker</p>
+          <p id="win-batchworker" class="mt-1 text-sm font-bold text-slate-900">-</p>
         </article>
 
         <article id="mac-storage-card" class="stat-card p-4">

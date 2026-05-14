@@ -100,6 +100,47 @@ def _fetch_win_json(path):
         return None
 
 
+def win_batchworker_running():
+    payload = _fetch_win_json("/win/batchworker")
+
+    if isinstance(payload, bool):
+        return payload
+
+    return None
+
+
+def mac_batchworker_running():
+    try:
+        now = now_tz()
+
+        if not (time(9, 0) <= now.time() <= time(15, 30)):
+            return False
+
+        redis_mod = importlib.import_module("redis")
+        Redis = getattr(redis_mod, "Redis")
+
+        client = Redis(
+            host=_env("REDIS_HOST", "localhost"),
+            port=int(_env("REDIS_PORT", "6379")),
+            db=int(_env("REDIS_DB", "0")),
+            password=_env("REDIS_PASSWORD", "") or None,
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
+
+        heartbeat = client.get("batchWorker")
+        if not heartbeat:
+            return False
+
+        hb = datetime.fromisoformat(str(heartbeat))
+        hb = hb.astimezone(APP_TZ) if hb.tzinfo else hb.replace(tzinfo=APP_TZ)
+
+        return (now - hb).total_seconds() <= 60
+    except Exception:
+        return False
+
+
 def mac_storage_payload():
     disk = psutil.disk_usage(MAC_DISK_PATH)
     total_gb = bytes_to_gb(disk.total)
@@ -612,6 +653,10 @@ def dashboard_payload(rows):
     return {
         "applications": rows,
         "storage": combined_storage_payload(),
+        "batchworker": {
+            "mac_running": mac_batchworker_running(),
+            "win_running": win_batchworker_running(),
+        },
         "meta": {
             "total": len(rows),
             "generated_at": now_tz().isoformat(),
@@ -784,6 +829,11 @@ def api_win_proxy(subpath):
 @app.get("/api/storage")
 def api_storage_combined():
     return jsonify(combined_storage_payload())
+
+
+@app.get("/api/batchworker")
+def api_batchworker_running():
+    return jsonify(mac_batchworker_running())
 
 
 @app.get("/storage")

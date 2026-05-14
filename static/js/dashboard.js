@@ -2,12 +2,14 @@ const statusEl = document.getElementById("socket-status");
 const socketDot = document.getElementById("socket-dot");
 const tableBodyEl = document.getElementById("table-body");
 const totalAppsEl = document.getElementById("total-apps");
-const macOnlineEl = document.getElementById("mac-online");
-const winOnlineEl = document.getElementById("win-online");
+const macBatchworkerEl = document.getElementById("mac-batchworker");
+const winBatchworkerEl = document.getElementById("win-batchworker");
 const macStorageEl = document.getElementById("mac-storage");
 const winStorageEl = document.getElementById("win-storage");
 const macStorageCardEl = document.getElementById("mac-storage-card");
 const winStorageCardEl = document.getElementById("win-storage-card");
+const macBatchworkerCardEl = document.getElementById("mac-batchworker-card");
+const winBatchworkerCardEl = document.getElementById("win-batchworker-card");
 
 function setSocketState(text, connected) {
   statusEl.textContent = text;
@@ -54,19 +56,26 @@ function storageText(storagePayload) {
 
 function renderOverview(payload) {
   const applications = payload?.applications || [];
-  const macApps = applications.filter(
-    (app) => String(app?.source || "MAC").toUpperCase() === "MAC",
-  );
-  const winApps = applications.filter(
-    (app) => String(app?.source || "MAC").toUpperCase() === "WIN",
-  );
-
-  const macOnline = macApps.filter((app) => Boolean(app.online)).length;
-  const winOnline = winApps.filter((app) => Boolean(app.online)).length;
+  const macBatchworkerRunning = payload?.batchworker?.mac_running;
+  const winBatchworkerRunning = payload?.batchworker?.win_running;
 
   totalAppsEl.textContent = String(applications.length);
-  macOnlineEl.textContent = `${macOnline}/${macApps.length}`;
-  winOnlineEl.textContent = `${winOnline}/${winApps.length}`;
+
+  if (macBatchworkerRunning === true) {
+    macBatchworkerEl.textContent = "ONLINE";
+  } else if (macBatchworkerRunning === false) {
+    macBatchworkerEl.textContent = "OFFLINE";
+  } else {
+    macBatchworkerEl.textContent = "UNKNOWN";
+  }
+
+  if (winBatchworkerRunning === true) {
+    winBatchworkerEl.textContent = "ONLINE";
+  } else if (winBatchworkerRunning === false) {
+    winBatchworkerEl.textContent = "OFFLINE";
+  } else {
+    winBatchworkerEl.textContent = "UNKNOWN";
+  }
 
   macStorageEl.textContent = storageText(payload?.storage?.mac);
   winStorageEl.textContent = storageText(payload?.storage?.win);
@@ -76,6 +85,14 @@ function renderOverview(payload) {
 
   macStorageCardEl.classList.toggle("storage-alert", macLowDisk);
   winStorageCardEl.classList.toggle("storage-alert", winLowDisk);
+  macBatchworkerCardEl.classList.toggle(
+    "status-alert",
+    macBatchworkerRunning === false,
+  );
+  winBatchworkerCardEl.classList.toggle(
+    "status-alert",
+    winBatchworkerRunning === false,
+  );
 }
 
 function renderTable(applications) {
